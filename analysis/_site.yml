@@ -1,17 +1,15 @@
 name: "planifsu"
-output_dir: ../docs
+output_dir: ../docs/3386cb4296284f15967b3e0ec9851c84c83e1ff1
 navbar:
   title: "planifsu"
   left:
-  - text: Home
+  - text: PAM
     href: index.html
-  - text: About
-    href: about.html
+  - text: Spare Parts
+    href: sparts.html
   - text: License
     href: license.html
-output:
-  workflowr::wflow_html:
-    toc: yes
-    toc_float: yes
-    theme: cosmo
-    highlight: textmate
+  right:
+  - icon: fa-github
+    text: Source code
+    href: https://github.com/ceanver/planifsu

@@ -1,0 +1,161 @@
+---
+title: "Reliability and Spare Parts Prediction"
+site: workflowr::wflow_site
+author: "[Cecil V.](https://github.com/ceanver)"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+mail: "cecil.vega@komatsu.cl"
+# linkedin: "yan-holtz-2477534a"
+# twitter: "r_graph_gallery"
+github: "ceanver"     
+# home: "www.yan-holtz.com"
+logo: "../docs/assets/logo.png"
+output: 
+    epuRate::epurate:
+    toc: TRUE
+    number_sections: FALSE
+    code_folding: "hide"
+editor_options: 
+  chunk_output_type: inline
+---
+
+<br><br>
+
+> Calculation  of  quantities  of  spare  parts  and  the  estimation  of availability. 
+![](../docs/assets/wallpaper.jpg)
+
+```{r setup, message=FALSE}
+### IMPORTING R SCRIPTS
+rm(list = ls())
+# setwd(paste0(rprojroot::find_rstudio_root_file(), "/analysis"))
+library(klaR)
+source("../code/setup.R")
+library(gower)
+library(cluster)
+knitr::opts_chunk$set(comment = "", collapse = FALSE)
+options(max.print="100")
+source("../code/var_dict.R", encoding = "UTF-8")
+source("../code/functions.R")
+source("../code/utils.R", encoding = "UTF-8")
+source("../code/setup.R")
+# source_python("../code/setup.py")
+# source_python("../code/GBClassifier.py")
+# source_python("../code/utils.py")
+```
+
+
+
+```{r}
+spart %>% 
+  mutate_at(c("q_spart", "section", 
+              "centre_ID", "equip_sap"), as.integer) %>% 
+  mutate(cost_part = round(as.numeric(cost_part), 2)) %>% 
+  mutate_at(c("post_date", "change_date", "date"), as_date)
+  # mutate(date = as)
+
+
+features <- c()
+```
+
+
+
+
+
+```{r}
+mc2 <- spart %>% 
+  select(c(bwart, spart_id, q_spart))
+set.seed(100000)
+
+cluster.results <-kmodes(mc2, modes=6, weighted = FALSE)
+
+# print(cluster.results)
+
+k.max <- 10
+
+wss <- sapply(4:k.max, 
+              function(k){set.seed(100000)
+                sum(kmodes(mc2, modes=k, weighted = FALSE)$withindiff)})
+
+wss
+
+plot(4:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Total within-clusters sum of squares")
+```
+
+
+```{r}
+# 2015-06-10 00:00:00.000
+
+# 2015 06 30 07 00 00
+
+```
+
+
+
+# Data Wrangling
+***
+
+## Load Data
+
+BWART corresponds to the warehouse movement. If a replacement is taken out of the warehouse the quantity is negative and it is labelled as Z21. If the replacement is returned to the warehouse the quantity is positive and it is labelled as Z22.
+
+
+
+
+```{r fig.height=8, fig.width=10}
+spart %>% 
+  group_by(spart_id) %>% 
+  summarise(freq = round(n()/100, 0)) %>% 
+  arrange(-freq, .by_group = TRUE) %>%
+  ungroup() %>%
+  top_n(10) %>% 
+  ggplot(aes(reorder(spart_id, freq), y = freq, fill = freq)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Failed Components",
+       y = "Frequency",
+       title = "Top Failure Modes") +
+  theme(legend.position = "none", 
+        axis.title.y = element_text(size = 10), 
+        axis.text.y = element_text(size = 10), 
+        axis.title.x = element_text(size = 15),
+        axis.text.x = element_text(size = 15), 
+        plot.title = element_text(size = 25, hjust = 0.2)) +
+  scale_fill_gradientn(name = "", 
+                       colours = rev(brewer.pal(10, "Spectral"))) +
+  geom_text(aes(label = freq), hjust = 0.5, size = 8.5) +
+  coord_flip()
+# parts$BWART
+```
+
+
+
+> Almost al Bwart are either Z21 or Z22.
+
+```{r}
+spart
+```
+
+```{r fig.height=8, fig.width=10}
+spart %>% 
+  group_by(bwart) %>% 
+  summarise(freq = round(n()/100, 0)) %>% 
+  ungroup() %>% 
+  ggplot(aes(reorder(bwart, freq), y = freq, fill = freq)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "Failed Components",
+       y = "Frequency",
+       title = "Top Failure Modes") +
+  theme(legend.position = "none", 
+        axis.title.y = element_text(size = 10), 
+        axis.text.y = element_text(size = 10), 
+        axis.title.x = element_text(size = 15),
+        axis.text.x = element_text(size = 15), 
+        plot.title = element_text(size = 25, hjust = 0.2)) +
+  scale_fill_gradientn(name = "", 
+                       colours = rev(brewer.pal(10, "Spectral"))) +
+  geom_text(aes(label = freq), hjust = 0.5, size = 8.5) +
+  coord_flip()
+# parts$BWART
+```
+

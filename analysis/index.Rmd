@@ -1,11 +1,292 @@
 ---
-title: "Home"
+title: "Reliability and Spare Parts Prediction"
 site: workflowr::wflow_site
-output:
-  workflowr::wflow_html:
-    toc: false
-editor_options:
-  chunk_output_type: console
+author: "[Cecil V.](https://github.com/ceanver)"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+mail: "cecil.vega@komatsu.cl"
+# linkedin: "yan-holtz-2477534a"
+# twitter: "r_graph_gallery"
+github: "ceanver"     
+# home: "www.yan-holtz.com"
+logo: "../docs/assets/logo.png"
+output: 
+    epuRate::epurate:
+    toc: TRUE
+    number_sections: FALSE
+    code_folding: "hide"
+editor_options: 
+  chunk_output_type: inline
 ---
 
-Welcome to my research website.
+<br><br>
+
+> Calculation  of  quantities  of  spare  parts  and  the  estimation  of availability. 
+![](../docs/assets/wallpaper.jpg)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# Libraries
+library(tidyverse)
+library(reticulate)
+# library(hrbrthemes)
+# library(viridis)
+library(plotly)
+# library(tidyverse)
+library(readxl)
+library(lubridate)
+```
+
+Objetivo Informe: Asegurar una correcta coordinación del uso de recursos para satisfacción de (?)
+
+- No sobrepasar un límite de Recursos ($, #comp, HM, HH, #rep)
+  + Make a table with minimum and maximum values grouped by category.
+  
+- Listado de recursos necesarios para cubrir el plan.
+  + Take the number of components, quantity, hours of work needed to accomplish the plan
+
+  
+- Asegurar que las alertas estén contenidas en el plan y como se proyectan.
+  + ??
+  
+- Considerar estacionalidad
+  + Make a monthly treemap by quantity of components requiered (maybe clustered?)
+
+- Disimilud móvil trimestral (probably the hardest and most interesting point. the idea is to generate a moving gower distance)
+  + Use gower distance of a 12 month rolling windoW and com
+
+- Desviación en el proyección de la edad respecto al TBO
+  + 
+
+- Consistencia en el outlook del plan (heatmaps X1X2)
+- Consistencia en la proyección de frecuencias de cambio (LPP 120% ACL)
+- Proyección de la edad de población de componentes en el tiempo (nice ideas)
+- Cantidad de cambios en componentes asignados
+
+
+
+
+```{r, eval=FALSE}
+sap_tags <- rbind(
+  c("Denominación", NA, "caex", "chr", 1),
+  c("Equipo", NA, "equip", "int", 0),
+  c("Prioridad", NA, "failure", "bin", 1),
+  c("Prioridad2", NA, "failure_chr", "chr", 0),
+  c("Aviso", NA, "aviso", "int", 0),
+  c("Descrip", NA, "desc", "chr", 0),
+  c("Orden", NA, "order_num", "int", 0),
+  c("Texto", NA, "txt", "chr", 0),
+  c("Texto causa", NA, "cause_txt", "chr", 0),
+  c("GrpMotivosTxt.", NA, "grp_mot", "chr", 0),
+  c("TextoGrpPartObj", NA, "cod_grp_obj", "chr", 1),
+  c("TextoCódPartObj", NA, "cod_part_obj", "chr", 0),
+  c("Txt. cód. mot.", NA, "cod_mot", "chr", 0),
+  c("TextoGrpCódProb", NA, "grp_cod_prob", "chr", 0),
+  c("TextoCódProblem", NA, "cod_prob", "chr", 0),
+  c("Inicio avería", "date", "start_date", "datetime", 1),
+  c("Hora in.avería", "time", "start_time", "datetime", 1),
+  c("Fin de avería", "date", "end_date", "datetime", 1),
+  c("Hora fin avería", "time", "end_time", "datetime", 1),
+  c("Duración parada", "time", "dur", "datetime", 0)) %>%
+  as_tibble() %>%
+  transmute(orig_names = as.character(V2),
+            units = V3,
+            name = as.character(V4),
+            type = as.character(V5),
+            dropped = as.numeric(V6))
+```
+
+
+```{r}
+# dt_pam <- read_xlsx("pam.xlsm", sheet = "Actividades", skip = 4) %>% 
+  # select_if(~sum(!is.na(.)) > 0)
+```
+
+
+
+
+```{r}
+# dt_pam %>% 
+  # group_by(COMPONENTE, Posición, Faena) %>% 
+  # summarise_if(is.numeric, mean)
+```
+
+
+
+
+```{r, warning=FALSE}
+join_cols <- c("Faena", "Modelo", "NRO INT.", "Cod Comp RMCare", "Cod Pos RMCare",
+                 "COMPONENTE", "Posición")
+proy_col <- "Mes de Proyección de cambio"
+e_PAM <- function(e, e_yr, e_mo) {
+  e %>% 
+    rbind(read_xlsx("../data/PAMs.xlsm", sheet = paste0("PAM 20", e_yr, "-", e_mo))) %>% 
+    select(c(join_cols, proy_col)) %>% 
+    mutate(mo = ifelse(as.integer(e_yr) != 20, as.integer(e_mo), as.integer(e_mo) + 12)) %>%  
+    rename(proy_mo = `Mes de Proyección de cambio`) %>% 
+    mutate(proy_mo = ifelse(year(proy_mo) != 2020, month(proy_mo), month(proy_mo) + 12))
+}
+dt_19_4 <- tibble() %>% e_PAM("19", "04")
+dt_19_5 <- tibble() %>% e_PAM("19", "05")
+dt_19_6 <- tibble() %>% e_PAM("19", "06")
+dt_19_7 <- tibble() %>% e_PAM("19", "07")
+dt_19_8 <- tibble() %>% e_PAM("19", "08")
+dt_19_9 <- tibble() %>% e_PAM("19", "09")
+dt_19_10 <- tibble() %>% e_PAM("19", "10")
+dt_19_11 <- tibble() %>% e_PAM("19", "11")
+dt_19_12 <- tibble() %>% e_PAM("19", "12")
+dt_20_1 <- tibble() %>% e_PAM("20", "01")
+```
+
+
+
+```{r}
+e_merge <- function(e_1, e_2) {
+  e_1 %>% 
+    merge(e_2, by = c(join_cols, "proy_mo"), all = TRUE) %>% 
+    mutate(mo.x = ifelse(is.na(mo.x), mo.x, proy_mo),
+           mo.y = ifelse(is.na(mo.y), mo.y, proy_mo))
+}
+dt <- 
+  dt_19_4 %>%
+    e_merge(dt_19_5) %>% 
+    rename(`19_4` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_6) %>% 
+    rename(`19_5` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_7) %>% 
+    rename(`19_6` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_8) %>% 
+    rename(`19_7` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_9) %>% 
+    rename(`19_8` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_10) %>% 
+    rename(`19_9` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_11) %>% 
+    rename(`19_10` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_19_12) %>% 
+    rename(`19_11` = mo.x, 
+           mo = mo.y) %>% 
+    e_merge(dt_20_1) %>% 
+    rename(`19_12` = mo.x, 
+           mo = mo.y) %>% 
+    rename(`20_1` = mo)
+rm("dt_19_4", "dt_19_5", "dt_19_6", "dt_19_7", "dt_19_8", 
+   "dt_19_9", "dt_19_10", "dt_19_11", "dt_19_12", "dt_20_1")
+dt <- dt %>% 
+  mutate(`19_4` = `19_4` - 4,
+         `19_5` = `19_5` - 5,
+         `19_6` = `19_6` - 6,
+         `19_7` = `19_7` - 7,
+         `19_8` = `19_8` - 8,
+         `19_9` = `19_9` - 9,
+         `19_10` = `19_10` - 10,
+         `19_11` = `19_11` - 11,
+         `19_12` = `19_12` - 12,
+         `20_1` = `20_1` - 13)
+```
+
+
+```{r}
+dt %>% filter(`NRO INT.` == 106 & COMPONENTE == "Motor de tracción")
+```
+
+```{r}
+m <- dt %>% 
+  filter(`NRO INT.` == 106 & COMPONENTE == "Motor de tracción") %>%  
+  transmute(
+    faena_comp = paste0(Faena, "_" , COMPONENTE), 
+    apr_19 = `19_4`,
+    may_19 = `19_5`,
+    jun_19 = `19_6`,
+    jul_19 = `19_7`,
+    aug_19 = `19_8`,
+    sep_19 = `19_9`,
+    oct_19 = `19_10`,
+    nov_19 = `19_11`,
+    dec_19 = `19_12`,
+    jan_20 = `20_1`) %>% 
+  as.matrix()
+p <- plot_ly(
+    x = colnames(m)[!colnames(m) %in% c("faena_comp")], 
+    y = m[,1],
+    z = m[,-1], type = "heatmap",
+    colors = colorRamp(c("red", "green")))
+
+p
+```
+
+
+```{r, fig.width=20, fig.height=20}
+m <- dt %>% 
+  group_by(Faena, COMPONENTE) %>% 
+  summarise_if(is.numeric, ~median(., na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  transmute(
+    faena_comp = paste0(Faena, "_" , COMPONENTE), 
+    apr_19 = `19_4`,
+    may_19 = `19_5`,
+    jun_19 = `19_6`,
+    jul_19 = `19_7`,
+    aug_19 = `19_8`,
+    sep_19 = `19_9`,
+    oct_19 = `19_10`,
+    nov_19 = `19_11`,
+    dec_19 = `19_12`,
+    jan_20 = `20_1`) %>% 
+  as.matrix()
+p <- plot_ly(
+    x = colnames(m)[!colnames(m) %in% c("faena_comp")], 
+    y = m[,1],
+    z = m[,-1], type = "heatmap",
+    colors = colorRamp(c("red", "green")))
+
+p
+# dt %>% 
+#   select(`19_4`, `19_5`, `19_6`, `19_7`, `19_8`, 
+#          `19_9`, `19_10`, `19_11`, `19_12`, `20_1`) %>% 
+#   as.matrix()
+```
+
+
+
+
+
+
+
+
+
+
+```{r}
+date_cols <- rbind(
+  c("19-4","43556"),
+  c("19-5", "43586"),
+  c("19-6", "43617"),
+  c("19-7", "43647"),
+  c("19-8", "43678"), 
+  c("19-9", "43709"),
+  c("19-10", "43739"),
+  c("19-11", "43770"),
+  c("19-12", "43800"),
+  c("20-1", "43831"),
+  c("20-2", "43862"),
+  c("20-3", "43891"),
+  c("20-4", "43922"),
+  c("20-5", "43952"),
+  c("20-6", "43983"),
+  c("20-7", "44013"),
+  c("20-8", "44044"),
+  c("20-9", "44075"),
+  c("20-10", "44105"),
+  c("20-11", "44136"),
+  c("20-12", "44166"))
+date_cols[,1]
+```
+
+
+
